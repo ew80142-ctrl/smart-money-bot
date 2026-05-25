@@ -6,7 +6,32 @@ import logging
 import threading
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
+from telegram import Updateimport os
+import sys
 from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("SmartMoneySignalBot is active and running!")
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text_received = update.message.text
+    await update.message.reply_text(f"Signal Processed: {text_received}")
+
+if __name__ == '__main__':
+    if not TOKEN:
+        print("Error: TELEGRAM_BOT_TOKEN missing")
+        sys.exit(1)
+
+    application = Application.builder().token(TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    print("Starting bot polling...")
+    application.run_polling()
+    
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 logging.basicConfig(

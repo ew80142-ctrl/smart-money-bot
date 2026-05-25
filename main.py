@@ -2,8 +2,7 @@ import os
 import sys
 import logging
 import threading
-from http.server import SimpleHTTPRequestHandler
-from socketserver import TCPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -18,15 +17,26 @@ TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 
-def run_dummy_server():
-    """Starts a lightweight web server so the platform doesn't shut down the bot."""
-    try:
-        port = int(os.environ.get("PORT", 8080))
-        server = TCPServer(("0.0.0.0", port), SimpleHTTPRequestHandler)
-        logger.info(f"Dummy web server successfully active on port {port}")
-        server.serve_forever()
-    except Exception as e:
-        logger.error(f"Web server error: {e}")
+class HealthHandler(BaseHTTPRequestHandler):
+    """Minimal HTTP handler that returns 200 OK for any request."""
+
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        # Suppress access logs to keep output clean
+        pass
+
+
+def run_health_server():
+    """Starts a lightweight HTTP health-check server on PORT (default 8080)."""
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    logger.info(f"Health check server listening on 0.0.0.0:{port}")
+    server.serve_forever()
 
 
 def read_signals(signal_text: str):
@@ -73,9 +83,9 @@ if __name__ == '__main__':
         logger.error("ERROR: TELEGRAM_BOT_TOKEN environment variable is missing!")
         sys.exit(1)
 
-    # Start the dummy web server thread to satisfy platform port-binding requirements
-    web_thread = threading.Thread(target=run_dummy_server, daemon=True)
-    web_thread.start()
+    # Start the HTTP health-check server in a background daemon thread
+    health_thread = threading.Thread(target=run_health_server, daemon=True)
+    health_thread.start()
 
     # Initialize and configure the Telegram application
     logger.info("Initializing Telegram bot service...")

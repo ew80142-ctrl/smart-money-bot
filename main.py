@@ -1,6 +1,35 @@
 import os
 import threading
+from http.server import SimpleHTTPRequeimport os
+import threading
 from http.server import SimpleHTTPRequestHandler
+from socketserver import TCPServer
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = TCPServer(("0.0.0.0", port), SimpleHTTPRequestHandler)
+    server.serve_forever()
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text('SmartMoneySignalBot is active!')
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text_received = update.message.text
+    await update.message.reply_text(f"Signal Processed: {text_received}")
+
+if __name__ == '__main__':
+    threading.Thread(target=run_dummy_server, daemon=True).start()
+    
+    application = Application.builder().token(TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    application.run_polling()
+    stHandler
 from socketserver import TCPServer
 from telegram.ext import Application # (Or Updater if using older version)
 

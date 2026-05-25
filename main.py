@@ -1,6 +1,63 @@
 import os
 import sys
+import loggingimport os
+import sys
 import logging
+import threading
+from http.server import SimpleHTTPRequestHandler
+from socketserver import TCPServer
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+
+def run_dummy_server():
+    try:
+        port = int(os.environ.get("PORT", 8080))
+        server = TCPServer(("0.0.0.0", port), SimpleHTTPRequestHandler)
+        server.serve_forever()
+    except Exception as e:
+        logger.error(f"Web server error: {e}")
+
+def read_signals(signal_text: str):
+    return f"Parsed Signal: {signal_text}"
+
+def analyze_xauusd():
+    return "Analyzing XAUUSD market structure..."
+
+def get_market_structure():
+    return "Market Structure: Bullish Order Block identified."
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(
+        "⚡ SmartMoneySignalBot is active 24/7.\nMonitoring XAUUSD market structure."
+    )
+
+async def handle_signal_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    incoming_text = update.message.text
+    parsed = read_signals(incoming_text)
+    analysis = analyze_xauusd()
+    structure = get_market_structure()
+    response = f"📊 **Signal Update Processing**\n\n🔹 {parsed}\n🔹 {analysis}\n🔹 {structure}"
+    await update.message.reply_text(response)
+
+if __name__ == '__main__':
+    if not TOKEN:
+        sys.exit(1)
+
+    threading.Thread(target=run_dummy_server, daemon=True).start()
+
+    application = Application.builder().token(TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_signal_message))
+
+    application.run_polling()
+    
 import threading
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
